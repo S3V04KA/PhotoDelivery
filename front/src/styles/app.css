@@ -1,0 +1,1015 @@
+/*
+ * Application surfaces: root page, text field, buttons, set app bar, photo
+ * grid and tiles. Colour, spacing, motion and M3 spec dimensions all come from
+ * tokens.css; the few literals left are component-local tokens declared next
+ * to their single use.
+ */
+
+/* ==========================================================================
+   Shared: state layers + press ripple
+   ::after  = hover / focus state layer (8% / 10%)
+   ::before = press ripple disc (12%)
+   ========================================================================== */
+
+.btn::before,
+.btn::after,
+.icon-btn::before,
+.icon-btn::after,
+.tile::before,
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.btn::after,
+.icon-btn::after,
+.tile::after {
+  z-index: 2;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.btn::before,
+.icon-btn::before,
+.tile::before {
+  z-index: 3;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(0.2);
+  transition:
+    transform var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-standard),
+    opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+}
+
+@media (hover: hover) {
+  .btn:hover::after,
+  .icon-btn:hover::after,
+  .tile:hover::after {
+    opacity: var(--md-sys-state-hover-opacity);
+  }
+}
+
+.btn:focus-visible::after,
+.icon-btn:focus-visible::after,
+.tile:focus-visible::after {
+  opacity: var(--md-sys-state-focus-opacity);
+}
+
+.btn:active::before,
+.icon-btn:active::before,
+.tile:active::before {
+  opacity: var(--md-sys-state-pressed-opacity);
+  transform: scale(1);
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-spacing-2);
+  min-height: var(--md-touch-target);
+  padding: 0 var(--md-spacing-5);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  font: var(--md-sys-typescale-label-large);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+  transition:
+    background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    box-shadow var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.btn--filled {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--md-sys-elevation-0);
+}
+
+.btn--tonal {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.btn--block {
+  width: 100%;
+  min-height: var(--md-size-text-field);
+}
+
+.icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--md-touch-target);
+  height: var(--md-touch-target);
+  min-width: var(--md-touch-target);
+  min-height: var(--md-touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  transition: background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+/* ==========================================================================
+   Circular progress (M3 indeterminate)
+   ========================================================================== */
+
+.spinner {
+  display: block;
+  width: var(--md-touch-target);
+  height: var(--md-touch-target);
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, currentColor 26%, transparent);
+  border-top-color: currentColor;
+  animation: spinner-rotate 900ms linear infinite;
+}
+
+.spinner--lg {
+  width: var(--md-size-text-field);
+  height: var(--md-size-text-field);
+  border-width: var(--md-stroke-emphasis);
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* ==========================================================================
+   Root page / 404 — the only screen with an input
+   ========================================================================== */
+
+.root {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: calc(var(--md-spacing-5) + env(safe-area-inset-top)) var(--md-spacing-4)
+    calc(var(--md-spacing-5) + env(safe-area-inset-bottom));
+  background: var(--md-sys-color-surface);
+}
+
+.root__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 420px);
+  gap: var(--md-spacing-2);
+  padding: var(--md-spacing-6) var(--md-spacing-5) var(--md-spacing-5);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-sys-elevation-2),
+    inset 0 1px 0 color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);
+  text-align: center;
+  animation: root-card-in var(--md-sys-motion-duration-long2)
+    var(--md-sys-motion-easing-emphasized-decelerate) both;
+}
+
+@keyframes root-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.root__mark {
+  --md-mark-size: 76px;
+  display: grid;
+  place-items: center;
+  width: var(--md-mark-size);
+  height: var(--md-mark-size);
+  margin-bottom: var(--md-spacing-2);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--md-sys-elevation-1);
+  animation: root-mark-in var(--md-sys-motion-duration-long2)
+    var(--md-sys-motion-easing-emphasized-decelerate) 60ms both;
+}
+
+.root__mark .icon {
+  width: 36px;
+  height: 36px;
+}
+
+@keyframes root-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.root__title {
+  font: var(--md-sys-typescale-display-small);
+  color: var(--md-sys-color-on-surface);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.root__subtitle {
+  font: var(--md-sys-typescale-body-large);
+  color: var(--md-sys-color-on-surface-variant);
+  text-wrap: balance;
+}
+
+.root__subtitle code {
+  padding: 1px 5px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', menlo, monospace;
+  font-size: 0.875em;
+}
+
+.root__action {
+  margin-top: var(--md-spacing-4);
+}
+
+.root__form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: var(--md-spacing-3);
+  text-align: left;
+}
+
+/* ==========================================================================
+   M3 outlined text field
+   The label is opaque and rides the top rule, punching the notch exactly the
+   way the M3 spec does. --field-surface keeps it matched to its container.
+   ========================================================================== */
+
+.field {
+  --field-outline: var(--md-sys-color-outline);
+  --field-surface: var(--md-sys-color-surface-container-low);
+  position: relative;
+  width: 100%;
+}
+
+.field[data-invalid='true'] {
+  --field-outline: var(--md-sys-color-error);
+}
+
+.field__box {
+  position: relative;
+  height: var(--md-size-text-field);
+}
+
+.field__box:focus-within {
+  --field-outline: var(--md-sys-color-primary);
+}
+
+.field__line {
+  position: absolute;
+  background: var(--field-outline);
+  transition:
+    background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    height var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.field__line--top,
+.field__line--bottom {
+  left: 0;
+  right: 0;
+  height: var(--md-stroke-resting);
+}
+
+.field__line--top {
+  top: 0;
+}
+
+.field__line--bottom {
+  bottom: 0;
+}
+
+.field__line--side {
+  top: 0;
+  bottom: 0;
+  width: var(--md-stroke-resting);
+}
+
+.field__line--start {
+  left: 0;
+}
+
+.field__line--end {
+  right: 0;
+}
+
+.field__box:focus-within .field__line {
+  height: var(--md-stroke-emphasis);
+}
+
+.field__box:focus-within .field__line--side {
+  width: var(--md-stroke-emphasis);
+}
+
+.field__label {
+  position: absolute;
+  top: 50%;
+  left: var(--md-spacing-4);
+  padding: 0 5px;
+  background: var(--field-surface);
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-large);
+  line-height: 24px;
+  max-width: calc(100% - var(--md-spacing-4) * 2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  transform-origin: left center;
+  transition:
+    top var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    font-size var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.field[data-filled='true'] .field__label,
+.field__box:focus-within .field__label {
+  top: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.field__box:focus-within .field__label {
+  color: var(--md-sys-color-primary);
+}
+
+.field[data-invalid='true'] .field__label,
+.field[data-invalid='true'] .field__box:focus-within .field__label {
+  color: var(--md-sys-color-error);
+}
+
+.field__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--md-spacing-4);
+  border: 0;
+  background: none;
+  color: var(--md-sys-color-on-surface);
+  caret-color: var(--md-sys-color-primary);
+  font: var(--md-sys-typescale-body-large);
+  outline: none;
+  appearance: none;
+}
+
+.field__support {
+  min-height: 16px;
+  margin: var(--md-spacing-1) var(--md-spacing-4) 0;
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.field__support[data-error='true'] {
+  color: var(--md-sys-color-error);
+}
+
+/* ==========================================================================
+   Set page shell
+   ========================================================================== */
+
+.set {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/*
+ * The app bar names the set and counts it, and stays a dead end — a set page
+ * has no way out of the set. The only action it carries is downloading the
+ * album, which also cannot leave the set. That action is a full button now, so
+ * the title yields the space: it ellipsizes instead of sitting under the split
+ * button.
+ */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--md-spacing-2);
+  min-height: var(--md-size-appbar);
+  padding: calc(8px + env(safe-area-inset-top)) max(var(--md-spacing-4), env(safe-area-inset-left))
+    8px max(var(--md-spacing-4), env(safe-area-inset-right));
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: 0 var(--md-stroke-hairline) 0
+    color-mix(in srgb, var(--md-sys-color-outline-variant) 60%, transparent);
+  text-align: start;
+}
+
+.appbar__lead {
+  min-width: 0;
+}
+
+/* The album action holds the bar's trailing slot; the title keeps the rest. */
+.appbar__action {
+  justify-self: end;
+}
+
+@supports ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .appbar {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 82%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* Selection replaces the title with a count; the two bars are the same slot. */
+.appbar--select {
+  --md-select-bar: var(--md-sys-color-primary-container);
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+  justify-content: space-between;
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-select-bar);
+  text-align: start;
+}
+
+/*
+ * The selection bar is opaque, so its blur bought nothing while the grid kept
+ * repainting under a full-width backdrop layer. Stated on the compound
+ * selector so it wins over the translucent .appbar rule above.
+ */
+.appbar.appbar--select {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.appbar--select .appbar__title {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  font: var(--md-sys-typescale-title-large);
+}
+
+.appbar--select .icon-btn:disabled {
+  color: color-mix(in srgb, currentColor 38%, transparent);
+  cursor: default;
+}
+
+.appbar__title {
+  max-width: 100%;
+  font: var(--md-sys-typescale-title-medium);
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appbar__count {
+  min-height: 16px;
+  font: var(--md-sys-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Photo grid
+   ========================================================================== */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--md-grid-gap);
+  margin: 0;
+  padding: var(--md-grid-pad);
+  padding-left: max(var(--md-grid-pad), env(safe-area-inset-left));
+  padding-right: max(var(--md-grid-pad), env(safe-area-inset-right));
+  padding-bottom: calc(var(--md-grid-pad) + env(safe-area-inset-bottom));
+  list-style: none;
+}
+
+@media (min-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 760px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1040px) {
+  :root {
+    --md-grid-gap: var(--md-spacing-3);
+    --md-grid-pad: var(--md-spacing-3);
+  }
+
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Staggered arrival: the first screenful lands in reading order, the rest of the
+ * set does not. Beyond twelve cells the stagger cost more than it read — a set
+ * of a thousand started a thousand animations the frame it appeared.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .grid__cell:nth-child(-n + 12) {
+    animation: grid-cell-in var(--md-sys-motion-duration-medium4)
+      var(--md-sys-motion-easing-emphasized-decelerate) both;
+  }
+
+  .grid__cell:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .grid__cell:nth-child(2) {
+    animation-delay: 22ms;
+  }
+  .grid__cell:nth-child(3) {
+    animation-delay: 44ms;
+  }
+  .grid__cell:nth-child(4) {
+    animation-delay: 66ms;
+  }
+  .grid__cell:nth-child(5) {
+    animation-delay: 88ms;
+  }
+  .grid__cell:nth-child(6) {
+    animation-delay: 110ms;
+  }
+  .grid__cell:nth-child(7) {
+    animation-delay: 132ms;
+  }
+  .grid__cell:nth-child(8) {
+    animation-delay: 154ms;
+  }
+  .grid__cell:nth-child(9) {
+    animation-delay: 176ms;
+  }
+  .grid__cell:nth-child(10) {
+    animation-delay: 198ms;
+  }
+  .grid__cell:nth-child(11) {
+    animation-delay: 220ms;
+  }
+  .grid__cell:nth-child(12) {
+    animation-delay: 242ms;
+  }
+}
+
+@keyframes grid-cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* ==========================================================================
+   Tile
+   ========================================================================== */
+
+.tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  appearance: none;
+  overflow: hidden;
+  isolation: isolate;
+  content-visibility: auto;
+  /* Only consulted while skipped; the grid track + aspect-ratio own the size. */
+  contain-intrinsic-size: auto 240px;
+}
+
+.tile:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: -3px;
+}
+
+/* Loading placeholder: decorative, so it must not answer hover or press. */
+.tile--placeholder {
+  pointer-events: none;
+}
+
+.tile__img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.03);
+  transition:
+    opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-standard);
+}
+
+.tile[data-loaded='true'] .tile__img {
+  opacity: 1;
+  transform: none;
+}
+
+.tile__skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: linear-gradient(
+    100deg,
+    var(--md-sys-color-surface-container-high) 20%,
+    var(--md-sys-color-surface-container-highest) 50%,
+    var(--md-sys-color-surface-container-high) 80%
+  );
+  transition: opacity var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.tile__skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container-highest) 90%, transparent) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-sheen 1400ms var(--md-sys-motion-easing-standard) infinite;
+}
+
+@keyframes skeleton-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile__skeleton::after {
+    animation: none;
+  }
+}
+
+.tile[data-loaded='true'] .tile__skeleton {
+  opacity: 0;
+}
+
+.tile__badge {
+  --md-badge-size: 30px;
+  --md-badge-inset: 6px;
+  position: absolute;
+  z-index: 4;
+  right: var(--md-badge-inset);
+  bottom: var(--md-badge-inset);
+  display: grid;
+  place-items: center;
+  width: var(--md-badge-size);
+  height: var(--md-badge-size);
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.tile__badge .icon {
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+}
+
+/* Selection mode: a check mark rides every tile, filled only when selected. */
+.tile[data-selected='true'] {
+  box-shadow: inset 0 0 0 3px var(--md-sys-color-primary);
+}
+
+.tile__check {
+  --md-check-size: 26px;
+  --md-check-inset: 6px;
+  position: absolute;
+  z-index: 5;
+  top: var(--md-check-inset);
+  left: var(--md-check-inset);
+  display: grid;
+  place-items: center;
+  width: var(--md-check-size);
+  height: var(--md-check-size);
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-sys-color-outline) 45%, transparent);
+  transition:
+    background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    box-shadow var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.tile[data-selected='true'] .tile__check {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+/* Thumb could not be resolved: tonal fallback instead of a broken image. */
+.tile__fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+}
+
+.tile__fallback--video {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.tile__fallback--image {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ==========================================================================
+   Download split button
+   Two halves of one gesture: the long half downloads at the default quality,
+   the chevron half opens the menu. The state layers repeat the ones .btn gets
+   instead of inventing a second press feedback, and the menu follows the
+   picker's popup language so the app has one menu shape.
+   ========================================================================== */
+
+.dl-split {
+  --md-split-divider: color-mix(in srgb, var(--md-sys-color-on-primary) 30%, transparent);
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: stretch;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--md-sys-elevation-0);
+  isolation: isolate;
+}
+
+.dl-split__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--md-touch-target);
+  padding: 0 var(--md-spacing-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: var(--md-sys-typescale-label-large);
+  cursor: pointer;
+  /* Clips the ripple only: the menu hangs off .dl-split, not off here. */
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+}
+
+.dl-split__main {
+  gap: var(--md-spacing-2);
+}
+
+.dl-split__toggle {
+  width: var(--md-touch-target);
+  padding: 0;
+  border-left: var(--md-stroke-hairline) solid var(--md-split-divider);
+}
+
+.dl-split__btn::before,
+.dl-split__btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: currentColor;
+}
+
+.dl-split__btn::after {
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+}
+
+.dl-split__btn::before {
+  z-index: 3;
+  opacity: 0;
+  transform: scale(0.2);
+  transition:
+    transform var(--md-sys-motion-duration-long2) var(--md-sys-motion-easing-standard),
+    opacity var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+}
+
+@media (hover: hover) {
+  .dl-split__btn:not(:disabled):hover::after {
+    opacity: var(--md-sys-state-hover-opacity);
+  }
+}
+
+.dl-split__btn:not(:disabled):focus-visible::after {
+  opacity: var(--md-sys-state-focus-opacity);
+}
+
+.dl-split__btn:not(:disabled):active::before {
+  opacity: var(--md-sys-state-pressed-opacity);
+  transform: scale(1);
+}
+
+.dl-split[data-disabled='true'] {
+  --md-split-divider: color-mix(in srgb, var(--md-sys-color-on-surface) 24%, transparent);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+
+.dl-split[data-disabled='true'] .dl-split__btn {
+  cursor: default;
+}
+
+/*
+ * Right edge flush with the chevron that opened it, above every sticky bar.
+ * The menu only lives inside .dl-split, which never clips, so it is not
+ * portal-rendered: it keeps the trigger's stacking context and its Escape.
+ */
+.dl-split__menu {
+  --md-menu-max: 240px;
+  position: absolute;
+  z-index: 130;
+  top: calc(100% + var(--md-spacing-1));
+  right: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(var(--md-menu-max), calc(100vw - var(--md-spacing-5) * 2));
+  padding: var(--md-spacing-2);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-2),
+    inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent);
+  animation: dl-menu-in var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-emphasized-decelerate) both;
+  overscroll-behavior: contain;
+}
+
+@keyframes dl-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.dl-split__option {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  width: 100%;
+  min-height: var(--md-touch-target);
+  padding: 0 var(--md-spacing-3);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-large);
+  text-align: start;
+  cursor: pointer;
+}
+
+.dl-split__option:hover,
+.dl-split__option:focus-visible {
+  background: color-mix(
+    in srgb,
+    var(--md-sys-color-on-surface) var(--md-sys-state-hover-opacity),
+    transparent
+  );
+}
+
+.dl-split__option[aria-checked='true'] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font: var(--md-sys-typescale-label-large);
+}
+
+.dl-split__option-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.dl-split__check {
+  --md-check-slot: 18px;
+  display: grid;
+  place-items: center;
+  width: var(--md-check-slot);
+  flex: none;
+  color: inherit;
+}
+
+/* ==========================================================================
+   Error state
+   ========================================================================== */
+
+.state {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  padding: var(--md-spacing-6) var(--md-spacing-5)
+    calc(var(--md-spacing-6) + env(safe-area-inset-bottom));
+}
+
+.state__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 380px);
+  gap: var(--md-spacing-2);
+  padding: var(--md-spacing-6) var(--md-spacing-5);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-sys-elevation-1),
+    inset 0 1px 0 color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);
+  text-align: center;
+}
+
+.state__icon {
+  --md-state-icon: var(--md-size-appbar);
+  display: grid;
+  place-items: center;
+  width: var(--md-state-icon);
+  height: var(--md-state-icon);
+  margin-bottom: var(--md-spacing-1);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.state__icon--neutral {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.state__message {
+  font: var(--md-sys-typescale-title-large);
+  color: var(--md-sys-color-on-surface);
+  text-wrap: balance;
+}
+
+.state__hint {
+  font: var(--md-sys-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  text-wrap: balance;
+}
+
+.state__action {
+  margin-top: var(--md-spacing-3);
+}
+
+/* ==========================================================================
+   Lazy chunk veil (Suspense fallback for the viewer)
+   ========================================================================== */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--md-canvas-scrim);
+  color: var(--md-canvas-on-surface);
+  overscroll-behavior: contain;
+}
+
+.veil__loader {
+  display: grid;
+  place-items: center;
+}

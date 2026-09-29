@@ -1,0 +1,189 @@
+/*
+ * Fullscreen viewer. It borrows the shared --md-canvas-* tokens (always dark,
+ * in both themes) and adds only its own local chrome/geometry values.
+ */
+
+.viewer {
+  --viewer-elevated: rgb(50 47 53 / 68%);
+  --viewer-inset-x: 88px;
+  --viewer-inset-y: 76px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  color: var(--md-canvas-on-surface);
+  overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 599px) {
+  .viewer {
+    --viewer-inset-x: 4px;
+    --viewer-inset-y: 60px;
+  }
+}
+
+/*
+ * The scrim sits at 88% opacity: a blur under it changes almost nothing you can
+ * see, and it cost a full-screen backdrop layer on every frame of a video. Kept
+ * as a flat wash on purpose.
+ */
+.viewer__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--md-canvas-scrim);
+}
+
+.viewer__stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--viewer-inset-y) + env(safe-area-inset-top))
+    calc(var(--viewer-inset-x) + env(safe-area-inset-right))
+    calc(var(--viewer-inset-y) + var(--md-spacing-3) + env(safe-area-inset-bottom))
+    calc(var(--viewer-inset-x) + env(safe-area-inset-left));
+  /* Horizontal drags are ours (prev/next); vertical drags stay with the page. */
+  touch-action: pan-y;
+}
+
+.viewer__media {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background: var(--md-canvas-media-backdrop);
+  box-shadow: var(--md-canvas-media-shadow);
+  animation: viewer-media-in var(--md-sys-motion-duration-medium2)
+    var(--md-sys-motion-easing-standard) both;
+}
+
+@keyframes viewer-media-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* pointer-events must stay off: the stage underneath owns swipe and dismiss. */
+.viewer__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.viewer__broken {
+  --md-broken-max: 320px;
+  display: grid;
+  justify-items: center;
+  gap: var(--md-spacing-2);
+  max-width: min(100% - var(--md-spacing-5) * 2, var(--md-broken-max));
+  padding: var(--md-spacing-5);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--viewer-elevated);
+  color: var(--md-canvas-on-surface);
+  font: var(--md-sys-typescale-body-medium);
+  text-align: center;
+}
+
+.viewer__broken-name {
+  max-width: 100%;
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-canvas-on-surface-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Close hugs the left edge, download the right one. The row spans the bar so
+ * the split button keeps its own space at 360px and never lands on the close.
+ */
+.viewer__top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-spacing-1);
+  padding: calc(var(--md-spacing-2) + env(safe-area-inset-top)) var(--md-spacing-2)
+    var(--md-spacing-2) calc(var(--md-spacing-2) + env(safe-area-inset-left));
+}
+
+/* A flat disc, not frosted glass: over a video the 10px blur was invisible
+   behind the wash and blurred a full-height layer every frame. */
+.viewer__nav {
+  --viewer-nav-surface: rgb(0 0 0 / 45%);
+  --viewer-nav-surface-hover: rgb(0 0 0 / 62%);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--viewer-nav-surface);
+}
+
+.viewer__nav--start {
+  left: max(var(--md-spacing-2), env(safe-area-inset-left));
+}
+
+.viewer__nav--end {
+  right: max(var(--md-spacing-2), env(safe-area-inset-right));
+}
+
+@media (hover: hover) {
+  .viewer__nav:hover {
+    background: var(--viewer-nav-surface-hover);
+  }
+}
+
+.viewer__nav:active {
+  background: var(--viewer-nav-surface-hover);
+}
+
+.viewer__caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--md-spacing-6) var(--md-spacing-4)
+    calc(var(--md-spacing-4) + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgb(0 0 0 / 78%), transparent);
+  pointer-events: none;
+  text-align: center;
+}
+
+.viewer__index {
+  font: var(--md-sys-typescale-label-large);
+  color: var(--md-canvas-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer__name {
+  max-width: min(100%, 640px);
+  font: var(--md-sys-typescale-body-small);
+  color: var(--md-canvas-on-surface-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Neighbour preloads: 1px, invisible, but fully fetched. */
+.viewer__preload {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

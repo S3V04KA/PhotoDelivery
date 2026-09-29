@@ -1,0 +1,20 @@
+{
+  "name": "photo-delivery",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "front",
+    "admin-panel",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n front,admin,api -c cyan,magenta,yellow \"npm run dev -w front\" \"npm run dev -w admin-panel\" \"npm run dev -w backend\"",
+    "build": "npm run build -w front && npm run build -w admin-panel && npm run build -w backend",
+    "start": "npm run start -w backend",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

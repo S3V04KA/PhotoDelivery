@@ -1,0 +1,190 @@
+/*
+ * Material You (M3) design tokens — the same design language as the public
+ * site (front/src/styles/tokens.css), copied rather than imported so the two
+ * bundles stay independent.
+ *
+ * Seed: M3 "baseline" purple (primary #6750A4). Every on-* colour is a genuine
+ * tonal pair from the Material Theme Builder ramp, so contrast holds up in
+ * both schemes. Light surface (#fef7ff) / dark surface (#141218) match the
+ * critical CSS in index.html, so there is no pre-paint flash.
+ *
+ * Two admin-specific additions are marked ADDITION below.
+ *
+ * System theme is mandatory: there is no toggle, the palette follows
+ * prefers-color-scheme.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Color roles: primary ------------------------------------------- */
+  --md-sys-color-primary: #6750a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eaddff;
+  --md-sys-color-on-primary-container: #21005d;
+
+  /* ---- Color roles: secondary ----------------------------------------- */
+  --md-sys-color-secondary: #625b71;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e8def8;
+  --md-sys-color-on-secondary-container: #1d192b;
+
+  /* ---- Color roles: tertiary ------------------------------------------ */
+  --md-sys-color-tertiary: #7d5260;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #ffd8e4;
+  --md-sys-color-on-tertiary-container: #31111d;
+
+  /* ---- Color roles: error --------------------------------------------- */
+  --md-sys-color-error: #b3261e;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #f9dedc;
+  --md-sys-color-on-error-container: #410e0b;
+
+  /* ADDITION: M3 baseline green, container pair only.
+   * A finished upload needs a tonal "yes" that is not the primary ramp and
+   * not an error. Only the container pair is used, by .chip--ok and the
+   * completed progress track. */
+  --md-sys-color-success-container: #c4eed0;
+  --md-sys-color-on-success-container: #00210e;
+
+  /* ---- Color roles: surfaces ------------------------------------------ */
+  --md-sys-color-surface: #fef7ff;
+  --md-sys-color-on-surface: #1d1b20;
+  --md-sys-color-surface-variant: #e7e0ec;
+  --md-sys-color-on-surface-variant: #49454f;
+  --md-sys-color-surface-dim: #ded8e1;
+  --md-sys-color-surface-bright: #fef7ff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f7f2fa;
+  --md-sys-color-surface-container: #f3edf7;
+  --md-sys-color-surface-container-high: #ece6f0;
+  --md-sys-color-surface-container-highest: #e6e0e9;
+
+  /* ---- Color roles: inverse (dark surfaces) --------------------------- */
+  --md-sys-color-inverse-surface: #322f35;
+  --md-sys-color-inverse-on-surface: #f5eff7;
+  --md-sys-color-inverse-primary: #d0bcff;
+
+  /* ---- Color roles: outline / scrim / shadow -------------------------- */
+  --md-sys-color-outline: #79747e;
+  --md-sys-color-outline-variant: #cac4d0;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-shadow: #000000;
+
+  /* ---- State layer opacities (M3) ------------------------------------- */
+  --md-sys-state-hover-opacity: 8%;
+  --md-sys-state-focus-opacity: 10%;
+  --md-sys-state-pressed-opacity: 12%;
+  --md-sys-state-dragged-opacity: 16%;
+
+  /* ---- Shape scale (M3) ------------------------------------------------ */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* ---- Elevation (M3 shadows over the neutral shadow key) --------------- */
+  --md-sys-elevation-0: none;
+  --md-sys-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  --md-sys-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --md-sys-elevation-3: 0 1px 3px 0 rgb(0 0 0 / 30%), 0 4px 8px 3px rgb(0 0 0 / 15%);
+  --md-sys-elevation-4: 0 2px 3px 0 rgb(0 0 0 / 30%), 0 6px 10px 4px rgb(0 0 0 / 15%);
+  --md-sys-elevation-5: 0 4px 4px 0 rgb(0 0 0 / 30%), 0 8px 12px 6px rgb(0 0 0 / 15%);
+
+  /* ---- Motion (M3) ----------------------------------------------------- */
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-duration-short2: 100ms;
+  --md-sys-motion-duration-short4: 200ms;
+  --md-sys-motion-duration-medium2: 300ms;
+  --md-sys-motion-duration-medium4: 400ms;
+  --md-sys-motion-duration-long2: 500ms;
+
+  /* ---- Typography ------------------------------------------------------ */
+  --md-sys-typescale-font: roboto, system-ui, -apple-system, 'Segoe UI', 'Noto Sans',
+    'Helvetica Neue', arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+  --md-sys-typescale-display-small: 400 2.25rem/2.75rem var(--md-sys-typescale-font);
+  --md-sys-typescale-headline-small: 400 1.5rem/2rem var(--md-sys-typescale-font);
+  --md-sys-typescale-title-large: 400 1.375rem/1.75rem var(--md-sys-typescale-font);
+  --md-sys-typescale-title-medium: 500 1rem/1.5rem var(--md-sys-typescale-font);
+  --md-sys-typescale-body-large: 400 1rem/1.5rem var(--md-sys-typescale-font);
+  --md-sys-typescale-body-medium: 400 0.875rem/1.25rem var(--md-sys-typescale-font);
+  --md-sys-typescale-body-small: 400 0.75rem/1rem var(--md-sys-typescale-font);
+  --md-sys-typescale-label-large: 500 0.875rem/1.25rem var(--md-sys-typescale-font);
+  --md-sys-typescale-label-medium: 500 0.75rem/1rem var(--md-sys-typescale-font);
+  --md-sys-typescale-label-small: 500 0.6875rem/1rem var(--md-sys-typescale-font);
+
+  /* ---- App-level scales (single source of truth for layout metrics) ---- */
+  --md-spacing-1: 4px;
+  --md-spacing-2: 8px;
+  --md-spacing-3: 12px;
+  --md-spacing-4: 16px;
+  --md-spacing-5: 24px;
+  --md-spacing-6: 32px;
+  --md-touch-target: 48px;
+  --md-min-touch-target: 44px;
+
+  /* ---- M3 spec component dimensions ------------------------------------ */
+  --md-size-text-field: 56px;
+  --md-size-appbar: 64px;
+  --md-size-thumb: 56px;
+  --md-stroke-hairline: 1px;
+  --md-stroke-resting: 1.5px;
+  --md-stroke-emphasis: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --md-sys-color-primary: #d0bcff;
+    --md-sys-color-on-primary: #381e72;
+    --md-sys-color-primary-container: #4f378b;
+    --md-sys-color-on-primary-container: #eaddff;
+
+    --md-sys-color-secondary: #ccc2dc;
+    --md-sys-color-on-secondary: #332d41;
+    --md-sys-color-secondary-container: #4a4458;
+    --md-sys-color-on-secondary-container: #e8def8;
+
+    --md-sys-color-tertiary: #efb8c8;
+    --md-sys-color-on-tertiary: #492532;
+    --md-sys-color-tertiary-container: #633b48;
+    --md-sys-color-on-tertiary-container: #ffd8e4;
+
+    --md-sys-color-error: #f2b8b5;
+    --md-sys-color-on-error: #601410;
+    --md-sys-color-error-container: #8c1d18;
+    --md-sys-color-on-error-container: #f9dedc;
+
+    /* ADDITION: dark counterpart of the success container pair. */
+    --md-sys-color-success-container: #1f5236;
+    --md-sys-color-on-success-container: #c4eed0;
+
+    --md-sys-color-surface: #141218;
+    --md-sys-color-on-surface: #e6e0e9;
+    --md-sys-color-surface-variant: #49454f;
+    --md-sys-color-on-surface-variant: #cac4d0;
+    --md-sys-color-surface-dim: #141218;
+    --md-sys-color-surface-bright: #3b383e;
+    --md-sys-color-surface-container-lowest: #0f0d13;
+    --md-sys-color-surface-container-low: #1d1b20;
+    --md-sys-color-surface-container: #211f26;
+    --md-sys-color-surface-container-high: #2b2930;
+    --md-sys-color-surface-container-highest: #36343b;
+
+    --md-sys-color-inverse-surface: #e6e0e9;
+    --md-sys-color-inverse-on-surface: #322f35;
+    --md-sys-color-inverse-primary: #6750a4;
+
+    --md-sys-color-outline: #938f99;
+    --md-sys-color-outline-variant: #49454f;
+  }
+}

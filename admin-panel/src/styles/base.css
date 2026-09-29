@@ -1,0 +1,123 @@
+/*
+ * Global base layer: reset, document surface, focus, icons, a11y helpers and
+ * the reduced-motion contract. Kept byte-identical in intent to the public
+ * site so both apps read as one family.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-medium);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+p,
+figure,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input {
+  font: inherit;
+}
+
+/* Every interactive element clears the 48px minimum touch target. */
+button,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* Decorative SVG: sized and coloured by CSS, never by markup. */
+.icon {
+  display: block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
+
+.icon--sm {
+  width: 18px;
+  height: 18px;
+}
+
+.icon--lg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon--xl {
+  width: 44px;
+  height: 44px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * Reduced motion: the app is fully usable with animation removed — decorative
+ * animation collapses, but every state change stays visible because each one
+ * is expressed as an opacity/colour end state rather than a transform.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
