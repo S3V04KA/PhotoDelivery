@@ -38,6 +38,12 @@
   position: absolute;
   inset: 0;
   display: grid;
+  /* Definite track sizes: the media's percentage max-width/max-height must
+     resolve against these, not against an auto row sized by the media itself
+     (that cycle turned the percentages into `none` and let portrait photos
+     overflow the viewport, showing only their top part). */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   padding: calc(var(--viewer-inset-y) + env(safe-area-inset-top))
     calc(var(--viewer-inset-x) + env(safe-area-inset-right))
