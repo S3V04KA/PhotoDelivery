@@ -9,6 +9,14 @@
  * must not wait for pixels it will never get, so the geometry is decided from
  * the item count and the column count alone.
  *
+ * The rhythm itself is drawn, not tabulated. Fixed beats cycled through a table
+ * read as a cycle: the eye named the period within three rows and the mosaic
+ * looked generated rather than photographed. So the gaps are random — but drawn
+ * from a *seeded* generator, because a mosaic that reshuffles on every render
+ * would move the photos out from under the user's finger. One set, one pattern:
+ * the seed comes from the set id, so two sets never look alike and one set
+ * always looks the same, at any width.
+ *
  * The grid is filled the way a browser fills it — sparse, in reading order,
  * never `dense`, because dense backfills holes out of order and the viewer
  * navigates `items[index]`. Two consequences of that model shape everything:
@@ -18,12 +26,13 @@
  *     tracks above its second row would otherwise stay empty. A hole reads as
  *     a bug, never as breathing room.
  *
- * So the spans are scheduled rather than demanded: a hero becomes *due* every
- * few items and is placed at the first column 0 that follows, a wide becomes
- * due on a longer beat and lands on the first pair of tracks that fits, and a
+ * So the spans are scheduled rather than demanded: a hero becomes *due* after a
+ * drawn gap and is placed at the first column 0 that follows, a wide becomes due
+ * on a longer drawn beat and lands on the first pair of tracks that fits, and a
  * hero near the end of the set is skipped unless enough items remain to fill
  * both of the rows it spans. Nothing that would not fit is ever asked for, so
- * downgrades fall out of the geometry instead of being special-cased.
+ * downgrades fall out of the geometry instead of being special-cased — the
+ * randomness only picks the beat, never the position.
  */
 
 /** How much of the grid one cell takes; the CSS owns the matching rules. */
@@ -53,45 +62,101 @@ const MIN_SPAN_COLUMNS = 2;
 const MIN_WIDE_COLUMNS = 3;
 
 /**
- * Items between heroes, cycled so the beat never repeats exactly and the eye
- * cannot count it. After a hero spans two rows its own pair of tracks pushes the
- * next column 0 out by roughly `2 * columns - 3` items, so these beats land
- * inside what the geometry allows at every column count the grid uses.
+ * Items between two heroes, drawn from this range. Both ends are deliberate:
+ * the floor is generous because a hero cannot repeat sooner than
+ * `2 * columns - 3` items anyway, so a short draw is spent waiting for the next
+ * column 0 rather than crowding the mosaic; the ceiling reaches past several
+ * column 0s on purpose, because a range that only ever spans one step still
+ * reads as a period once the geometry has quantised the steps. The long quiet
+ * stretches are what make the next big photo land like an event.
  */
-const HERO_BEATS: readonly number[] = [6, 8, 7, 9];
+const HERO_GAP: readonly [number, number] = [5, 24];
 
 /**
- * Items between wide tiles — a longer beat than the heroes, so roughly one wide
- * per hero and never two in a row. The spread keeps short column counts from
- * starving on heroes or drowning on banners.
+ * Items between wide tiles, on a longer beat than the heroes so a wide stays an
+ * accent instead of becoming a second rhythm competing with them.
  */
-const WIDE_BEATS: readonly number[] = [11, 9, 13, 8];
+const WIDE_GAP: readonly [number, number] = [6, 19];
 
-/** The opening hero already sets the tone; the first wide waits for its beat. */
-const WIDE_OPENING_BEAT = 4;
+/**
+ * The opening hero already sets the tone, so the first wide waits out a beat of
+ * its own instead of landing right beside it.
+ */
+const WIDE_OPENING_GAP: readonly [number, number] = [2, 6];
+
+/**
+ * Items a wide must leave alone around the last one. A drawn beat can come up
+ * short, and two wide tiles back to back read as one bar, not as a mosaic.
+ */
+const WIDE_HOLDOFF = 2;
+
+/** The seed for a caller with nothing better to offer. */
+const DEFAULT_SEED = 0x9e3779b9;
+
+/**
+ * mulberry32: a seeded 32-bit generator in ten lines, no dependencies. The whole
+ * promise of this module is that a set looks the same on every render, so the
+ * generator is seeded by the caller and `Math.random` never reaches this file.
+ */
+function createRandom(seed: number): () => number {
+  let state = seed >>> 0;
+
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let bits = state;
+    bits = Math.imul(bits ^ (bits >>> 15), bits | 1);
+    bits ^= bits + Math.imul(bits ^ (bits >>> 7), bits | 61);
+
+    return ((bits ^ (bits >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** A whole number from an inclusive range, drawn from the seeded generator. */
+function drawInt(random: () => number, range: readonly [number, number]): number {
+  const [min, max] = range;
+
+  return min + Math.floor(random() * (max - min + 1));
+}
+
+/**
+ * FNV-1a over a string, so a set id becomes a seed. Hashing the id rather than
+ * the file list is what keeps the skeleton and the loaded grid on one pattern:
+ * the skeleton has no items to hash, and both states know the id.
+ */
+export function hashSeed(value: string): number {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return hash >>> 0;
+}
 
 /**
  * Items a hero spans that sit outside it: two tracks at its column 0, in each of
- * the two rows it covers. Without this many items behind it the mosaic would
- * end on a hero floating over an empty strip.
+ * the two rows it covers. Without this many items behind it the mosaic would end
+ * on a hero floating over an empty strip.
  */
-function heroTailNeed(columns: number): number {
+export function heroTailNeed(columns: number): number {
   return (columns - FOOTPRINTS.hero.columns) * FOOTPRINTS.hero.rows;
-}
-
-function nextBeat(beats: readonly number[], turn: number): number {
-  return beats[turn % beats.length];
 }
 
 /**
  * Span per cell for a mosaic of `count` cells laid out in `columns` tracks.
  *
  * Order is the array's: cell `i` is item `i`, so what the viewer walks and what
- * the eye reads are the same sequence. A non-positive count gives no cells, and
- * fewer than two tracks (or a count the DOM could not measure) gives the plain
- * square wall.
+ * the eye reads are the same sequence. One seed always draws the same rhythm, so
+ * a set keeps its face across re-renders, remounts and resizes. A non-positive
+ * count gives no cells, and fewer than two tracks (or a count the DOM could not
+ * measure) gives the plain square wall.
  */
-export function computeCellSpans(count: number, columns: number): CellSpanKind[] {
+export function computeCellSpans(
+  count: number,
+  columns: number,
+  seed: number = DEFAULT_SEED,
+): CellSpanKind[] {
   const spans: CellSpanKind[] = [];
   const tracks = Number.isFinite(columns) ? Math.floor(columns) : 1;
 
@@ -103,6 +168,8 @@ export function computeCellSpans(count: number, columns: number): CellSpanKind[]
     return spans;
   }
 
+  const random = createRandom(seed);
+  const tail = heroTailNeed(tracks);
   /* Cursor over the tracks of the current row, and how many of them the row
      below already starts with — a hero speaks for the same two columns in both
      of the rows it spans, so the row under it starts past them. */
@@ -112,9 +179,8 @@ export function computeCellSpans(count: number, columns: number): CellSpanKind[]
      span that does not fit stays due and waits for the next cell that can take
      it, which is how the rhythm absorbs the geometry instead of fighting it. */
   let heroDueIn = 0;
-  let wideDueIn = WIDE_OPENING_BEAT;
-  let heroTurn = 0;
-  let wideTurn = 0;
+  let wideDueIn = drawInt(random, WIDE_OPENING_GAP);
+  let sinceWide = WIDE_HOLDOFF;
 
   for (let index = 0; index < count; index += 1) {
     /* Fill the current row before touching the next: a hero that filled the
@@ -127,18 +193,17 @@ export function computeCellSpans(count: number, columns: number): CellSpanKind[]
 
     let kind: CellSpanKind = 'sm';
 
-    if (heroDueIn === 0 && col === 0 && count - 1 - index >= heroTailNeed(tracks)) {
+    if (heroDueIn === 0 && col === 0 && count - 1 - index >= tail) {
       kind = 'hero';
-      heroTurn += 1;
-      heroDueIn = nextBeat(HERO_BEATS, heroTurn - 1);
+      heroDueIn = drawInt(random, HERO_GAP);
     } else if (
       wideDueIn === 0 &&
+      sinceWide >= WIDE_HOLDOFF &&
       tracks >= MIN_WIDE_COLUMNS &&
       col + FOOTPRINTS.wide.columns <= tracks
     ) {
       kind = 'wide';
-      wideTurn += 1;
-      wideDueIn = nextBeat(WIDE_BEATS, wideTurn - 1);
+      wideDueIn = drawInt(random, WIDE_GAP);
     }
 
     spans.push(kind);
@@ -156,8 +221,12 @@ export function computeCellSpans(count: number, columns: number): CellSpanKind[]
       heroDueIn = Math.max(heroDueIn - 1, 0);
     }
 
-    if (kind !== 'wide') {
+    if (kind === 'wide') {
+      wideDueIn = drawInt(random, WIDE_GAP);
+      sinceWide = 0;
+    } else {
       wideDueIn = Math.max(wideDueIn - 1, 0);
+      sinceWide += 1;
     }
   }
 

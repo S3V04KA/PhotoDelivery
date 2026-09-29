@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
-import { computeCellSpans, type CellSpanKind } from '../lib/layout';
+import { computeCellSpans, heroTailNeed, type CellSpanKind } from '../lib/layout';
 import { gridImageCandidates } from '../lib/media';
 import type { MediaItem } from '../lib/types';
 import { BrokenImageIcon, CheckIcon, PlayIcon } from './icons';
@@ -414,6 +414,8 @@ const MediaCell = memo(function MediaCell({ span, ...props }: MediaCellProps) {
 
 interface MediaGridProps {
   readonly items: readonly MediaItem[];
+  /** Draws the rhythm; the same seed has to keep giving the same mosaic. */
+  readonly seed: number;
   readonly onOpen: (index: number) => void;
   readonly selectMode: boolean;
   readonly selected: ReadonlySet<string>;
@@ -421,9 +423,9 @@ interface MediaGridProps {
   readonly onLongPress: (item: MediaItem) => void;
 }
 
-export function MediaGrid({ items, onOpen, selectMode, selected, onToggle, onLongPress }: MediaGridProps) {
+export function MediaGrid({ items, seed, onOpen, selectMode, selected, onToggle, onLongPress }: MediaGridProps) {
   const [gridRef, columns] = useGridColumns();
-  const spans = useMemo(() => computeCellSpans(items.length, columns), [columns, items.length]);
+  const spans = useMemo(() => computeCellSpans(items.length, columns, seed), [columns, items.length, seed]);
 
   useEffect(() => {
     gridHolders += 1;
@@ -450,11 +452,16 @@ export function MediaGrid({ items, onOpen, selectMode, selected, onToggle, onLon
   );
 }
 
-export function SkeletonGrid({ tiles = 12 }: { readonly tiles?: number }) {
-  /* The same plan as the loaded grid, so the set does not re-mosaic the moment
-     the real photos replace the placeholders. */
+export function SkeletonGrid({ tiles = 12, seed }: { readonly tiles?: number; readonly seed: number }) {
   const [gridRef, columns] = useGridColumns();
-  const spans = useMemo(() => computeCellSpans(tiles, columns), [columns, tiles]);
+  /* The same plan as the loaded grid, so the set does not re-mosaic the moment
+     the real photos replace the placeholders. Planning past `tiles` is what makes
+     that true: the tail guard holds a hero back only near the end of a set, and
+     the skeleton is nothing but the end. */
+  const spans = useMemo(
+    () => computeCellSpans(tiles + heroTailNeed(columns), columns, seed).slice(0, tiles),
+    [columns, seed, tiles],
+  );
 
   return (
     <>

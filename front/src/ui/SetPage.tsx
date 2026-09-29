@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { archiveUrl, triggerDownload, type DownloadQuality } from '../lib/download';
+import { hashSeed } from '../lib/layout';
 import { usePaletteForSet, type PaletteStatus } from '../lib/palette';
 import { listMedia } from '../lib/s3';
 import { S3Error, SetNotFoundError, type MediaItem } from '../lib/types';
@@ -92,6 +93,10 @@ export function SetPage({ setId }: SetPageProps) {
 
   const items = state.status === 'ready' ? state.items : NO_ITEMS;
   const paletteStatus: PaletteStatus = state.status;
+  /* The mosaic's rhythm is drawn from this, and only from this: one set always
+     wears the same face, two sets never look alike, and the skeleton and the
+     loaded grid are handed the same draw. */
+  const seed = useMemo(() => hashSeed(setId), [setId]);
 
   usePaletteForSet(setId, items, paletteStatus);
 
@@ -207,7 +212,7 @@ export function SetPage({ setId }: SetPageProps) {
         </header>
       )}
 
-      {state.status === 'loading' && <SkeletonGrid />}
+      {state.status === 'loading' && <SkeletonGrid seed={seed} />}
 
       {state.status === 'error' && (
         <ErrorPanel message={state.failure.message} hint={state.failure.hint} onRetry={handleRetry} />
@@ -225,6 +230,7 @@ export function SetPage({ setId }: SetPageProps) {
         <>
           <MediaGrid
             items={state.items}
+            seed={seed}
             onOpen={setViewerIndex}
             selectMode={selectMode}
             selected={selected}
