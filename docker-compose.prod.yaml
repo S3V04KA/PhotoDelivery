@@ -1,0 +1,70 @@
+name: photo-delivery
+
+x-app: &app
+  image: photo-delivery:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      VITE_S3_ENDPOINT: ${VITE_S3_ENDPOINT:-http://localhost:9000}
+      VITE_S3_BUCKET: ${VITE_S3_BUCKET:-photos}
+      VITE_SITE_TITLE: ${VITE_SITE_TITLE:-Фото}
+
+x-s3: &s3
+  S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-minioadmin}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+  S3_BUCKET: ${S3_BUCKET:-photos}
+
+services:
+  s3-init:
+    <<: *app
+    command: ["node", "backend/scripts/init-bucket.mjs"]
+    environment:
+      <<: *s3
+    restart: "no"
+
+  app:
+    <<: *app
+    environment:
+      <<: *s3
+      PORT: "8080"
+      ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-512}
+      THUMB_SIZE: ${THUMB_SIZE:-512}
+      THUMB_QUALITY: ${THUMB_QUALITY:-80}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Change yourdomain.com to your actual domain
+      - "traefik.http.routers.pd.rule=Host(`pd.gr34ka.ru`)"
+      - "traefik.http.routers.pd.entrypoints=http,https"
+      - "traefik.http.routers.pd.service=pd"
+      - "traefik.http.routers.pd.tls.certresolver=letsEncrypt"
+      # 3x-ui default internal port is 2053
+      - "traefik.http.services.pd.loadbalancer.server.port=8080"
+    depends_on:
+      s3-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/admin/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  traefik:
+    external: true
