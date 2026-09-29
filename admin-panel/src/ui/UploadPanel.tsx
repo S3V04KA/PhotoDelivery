@@ -7,6 +7,7 @@ import {
   formatFileCount,
   truncateMiddle,
 } from '../lib/format';
+import { runPool } from '../lib/pool';
 import { kindLabel, mediaKind, validateSetId, type MediaKind } from '../lib/validate';
 import { Dropzone } from './Dropzone';
 import { ProgressBar } from './ProgressBar';
@@ -55,6 +56,7 @@ interface UploadPanelProps {
 const NOTHING_PENDING = 'Нечего загружать: добавьте файлы';
 const INTERRUPTED = 'Загрузка прервана';
 const PREVIEW_OK_NOTE = 'предпросмотр: ок';
+const UPLOAD_CONCURRENCY = 4;
 
 function kindIcon(kind: MediaKind) {
   if (kind === 'image') {
@@ -261,8 +263,13 @@ export function UploadPanel({
 
     let done = 0;
     let failed = 0;
+    let expired = false;
 
-    for (const row of queue) {
+    await runPool(queue, UPLOAD_CONCURRENCY, async (row) => {
+      if (expired) {
+        return;
+      }
+
       patch(row.id, { status: 'uploading', percent: 0, error: null, thumb: 'unknown' });
 
       try {
@@ -280,24 +287,33 @@ export function UploadPanel({
         if (entry === undefined || !entry.ok) {
           failed += 1;
           patch(row.id, { status: 'error', error: entry?.error ?? 'Файл не загружен' });
-          continue;
+          return;
         }
 
         done += 1;
         patch(row.id, { status: 'done', percent: 100, thumb: entry.thumb, error: null });
       } catch (failure) {
         if (isUnauthorized(failure)) {
-          setRunning(false);
-          onSessionExpired();
+          if (!expired) {
+            expired = true;
+            setRunning(false);
+            onSessionExpired();
+          }
+
           return;
         }
 
         failed += 1;
         patch(row.id, { status: 'error', error: errorMessage(failure, 'Файл не загружен') });
       }
-    }
+    });
 
     setRunning(false);
+
+    if (expired) {
+      return;
+    }
+
     setSummary({ done, failed, skipped });
 
     if (done > 0) {
