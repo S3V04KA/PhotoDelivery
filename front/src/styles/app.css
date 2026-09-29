@@ -520,7 +520,7 @@
 
 @media (min-width: 1040px) {
   :root {
-    --md-grid-gap: var(--md-spacing-3);
+    --md-grid-gap: var(--md-spacing-2);
     --md-grid-pad: var(--md-spacing-3);
   }
 
@@ -533,6 +533,42 @@
   .grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
+}
+
+/* --------------------------------------------------------------------------
+   Mosaic geometry
+
+   The rhythm is planned in layout.ts and lands here as a span class on the
+   cell, so the box of every tile is CSS alone: one square track by default, a
+   hero square twice as wide and twice as tall, a wide tile two tracks by one.
+   Equal tracks are what makes a hero's aspect ratio land on exactly two rows —
+   any other reading of the tracks would stretch it — and the planner only ever
+   asks for a hero where the row underneath it stays full. The gap is tight on
+   purpose: a mosaic reads as a wall of photos, not as a table of cards.
+   -------------------------------------------------------------------------- */
+
+.grid__cell {
+  /* The cell fills its grid area and no more: `aspect-ratio` feeds back into the
+     other axis, so a cell stretched by a wider row would otherwise push 4px out
+     of the tracks and eat the gap beside it. A wide tile is half a gap taller
+     than a square one, so its row is too — filling the row instead of keeping
+     the square is what keeps every horizontal line of the wall straight, and
+     the tile inside crops, so the extra fraction is never seen. */
+  min-width: 0;
+  max-width: 100%;
+  min-height: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.grid__cell--wide {
+  grid-column: span 2;
+  aspect-ratio: 2 / 1;
+}
+
+.grid__cell--hero {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: 1 / 1;
 }
 
 /*
@@ -599,7 +635,7 @@
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 100%;
   padding: 0;
   border: 0;
   border-radius: var(--md-sys-shape-corner-large);
@@ -610,8 +646,15 @@
   overflow: hidden;
   isolation: isolate;
   content-visibility: auto;
-  /* Only consulted while skipped; the grid track + aspect-ratio own the size. */
+  /* The cell owns the box, so this only matters if that height ever stopped
+     being definite — a skipped tile then reserves a square instead of nothing. */
   contain-intrinsic-size: auto 240px;
+}
+
+/* Four tracks of surface instead of one: the extra-large shape is the M3 answer
+   to "this one is bigger", and it keeps the mosaic from reading as one scale. */
+.grid__cell--hero .tile {
+  border-radius: var(--md-sys-shape-corner-extra-large);
 }
 
 .tile:focus-visible {

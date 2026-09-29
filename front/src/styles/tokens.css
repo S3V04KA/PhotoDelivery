@@ -120,7 +120,7 @@
   --md-spacing-5: 24px;
   --md-spacing-6: 32px;
   --md-touch-target: 48px;
-  --md-grid-gap: var(--md-spacing-2);
+  --md-grid-gap: var(--md-spacing-1);
   --md-grid-pad: 10px;
 
   /* ---- M3 spec component dimensions ---- */

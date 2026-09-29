@@ -1,5 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
+import { computeCellSpans, type CellSpanKind } from '../lib/layout';
 import { gridImageCandidates } from '../lib/media';
 import type { MediaItem } from '../lib/types';
 import { BrokenImageIcon, CheckIcon, PlayIcon } from './icons';
@@ -99,6 +100,97 @@ function watchCell(cell: HTMLElement, onNear: () => void): () => void {
     pendingCells.delete(cell);
     observer.unobserve(cell);
   };
+}
+
+/* --------------------------------------------------------------------------
+   Mosaic
+
+   Which column count the grid has is decided by CSS, in one media-query ladder.
+   Reading it back from the DOM is the only way to keep that ladder the single
+   source of truth: a second copy of those pixel values in JS drifts the moment
+   either moves, and a mosaic planned for the wrong width plans holes.
+
+   So the grid counts its own resolved tracks, hands the number to the pure
+   layout function and puts the answer on the cell. Spans live on the cell — the
+   grid item — and not on the tile, because the cell is the unit of geometry,
+   of the arrival stagger and of the viewer's index lookup, and all three have to
+   agree.
+   -------------------------------------------------------------------------- */
+
+/** The ladder's base is two columns; only used until the real count is measured. */
+const FALLBACK_COLUMNS = 2;
+
+/** One resolved track: "212.5px", "40%", or an unresolved "1fr". */
+const TRACK_LENGTH = /^-?\d*\.?\d+(px|em|rem|%|fr)$/;
+
+function countTracks(template: string): number {
+  const value = template.trim();
+
+  if (value === '' || value === 'none') {
+    return 0;
+  }
+
+  /* A used track list is a run of plain lengths, but an unresolved one can hold
+     functions with spaces inside them, so tokens are glued back together until
+     they read as a length again. */
+  let tracks = 0;
+  let pending = '';
+
+  for (const token of value.split(/\s+/)) {
+    pending += token;
+
+    if (TRACK_LENGTH.test(pending)) {
+      tracks += 1;
+      pending = '';
+    }
+  }
+
+  return tracks;
+}
+
+function useGridColumns(): readonly [RefObject<HTMLUListElement | null>, number] {
+  const ref = useRef<HTMLUListElement | null>(null);
+  const [columns, setColumns] = useState(FALLBACK_COLUMNS);
+
+  /* A layout effect, not an effect: the first span assignment has to land in the
+     same frame as the cells, or every set would visibly re-mosaic after paint.
+     The observer is what keeps the answer true across a breakpoint crossing —
+     which also means a resize re-plans the mosaic, and nothing else does. */
+  useLayoutEffect(() => {
+    const grid = ref.current;
+
+    if (grid === null) {
+      return;
+    }
+
+    const measure = (): void => {
+      const measured = countTracks(getComputedStyle(grid).gridTemplateColumns);
+
+      if (measured > 0) {
+        setColumns(measured);
+      }
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(measure);
+
+    observer.observe(grid);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  return [ref, columns];
+}
+
+function cellClass(span: CellSpanKind): string {
+  return span === 'sm' ? 'grid__cell' : `grid__cell grid__cell--${span}`;
 }
 
 interface MediaTileProps {
@@ -287,7 +379,11 @@ const MediaTile = memo(function MediaTile({
   );
 });
 
-const MediaCell = memo(function MediaCell(props: MediaTileProps) {
+interface MediaCellProps extends MediaTileProps {
+  readonly span: CellSpanKind;
+}
+
+const MediaCell = memo(function MediaCell({ span, ...props }: MediaCellProps) {
   const cellRef = useRef<HTMLLIElement | null>(null);
   const [near, setNear] = useState(CAN_OBSERVE === false || props.index < EAGER_TILE_COUNT);
 
@@ -304,11 +400,13 @@ const MediaCell = memo(function MediaCell(props: MediaTileProps) {
   }, [near]);
 
   /* The cell is the unit of layout, the arrival stagger and the viewer's index
-     lookup, so it is a real `.grid__cell` from the first paint. Until the tile
-     arrives it holds the same box the tile will occupy — same `.tile` sizing,
-     `pointer-events: none` so it cannot eat a click meant for the cell. */
+     lookup, so it is a real `.grid__cell` from the first paint — and it carries
+     the span the mosaic planned for it, so a deferred cell holds the box its
+     tile will fill instead of a square that snaps when the photo arrives.
+     Until then that box is a `pointer-events: none` placeholder, which cannot
+     eat a click meant for the tile that replaces it. */
   return (
-    <li className="grid__cell" ref={cellRef}>
+    <li className={cellClass(span)} ref={cellRef}>
       {near ? <MediaTile {...props} /> : <div className="tile tile--placeholder" aria-hidden="true" />}
     </li>
   );
@@ -324,6 +422,9 @@ interface MediaGridProps {
 }
 
 export function MediaGrid({ items, onOpen, selectMode, selected, onToggle, onLongPress }: MediaGridProps) {
+  const [gridRef, columns] = useGridColumns();
+  const spans = useMemo(() => computeCellSpans(items.length, columns), [columns, items.length]);
+
   useEffect(() => {
     gridHolders += 1;
 
@@ -331,12 +432,13 @@ export function MediaGrid({ items, onOpen, selectMode, selected, onToggle, onLon
   }, []);
 
   return (
-    <ul className="grid" data-select-mode={selectMode}>
+    <ul className="grid" data-select-mode={selectMode} ref={gridRef}>
       {items.map((item, index) => (
         <MediaCell
           key={item.key}
           item={item}
           index={index}
+          span={spans[index]}
           onOpen={onOpen}
           selectMode={selectMode}
           selected={selected.has(item.key)}
@@ -349,14 +451,19 @@ export function MediaGrid({ items, onOpen, selectMode, selected, onToggle, onLon
 }
 
 export function SkeletonGrid({ tiles = 12 }: { readonly tiles?: number }) {
+  /* The same plan as the loaded grid, so the set does not re-mosaic the moment
+     the real photos replace the placeholders. */
+  const [gridRef, columns] = useGridColumns();
+  const spans = useMemo(() => computeCellSpans(tiles, columns), [columns, tiles]);
+
   return (
     <>
       <p className="sr-only" role="status">
         Загрузка фотосета…
       </p>
-      <ul className="grid" aria-hidden="true">
-        {Array.from({ length: tiles }, (_, index) => (
-          <li className="grid__cell" key={index}>
+      <ul className="grid" aria-hidden="true" ref={gridRef}>
+        {spans.map((span, index) => (
+          <li className={cellClass(span)} key={index}>
             <div className="tile tile--placeholder">
               <span className="tile__skeleton" />
             </div>
