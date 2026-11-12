@@ -126,6 +126,7 @@ export class MediaPreviewer implements Previewer {
     try {
       const pipeline = sharp(input)
         .rotate()
+        .autoOrient()
         .resize({
           width: this.#thumbSize,
           height: this.#thumbSize,
