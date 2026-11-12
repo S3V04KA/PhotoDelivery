@@ -3,6 +3,7 @@ import {
   baseNameOf,
   extensionOf,
   FALLBACK_MIME,
+  isRawImage,
   kindOf,
   mimeFor,
   objectKey,
@@ -70,10 +71,31 @@ describe('kindOf', () => {
     }
   });
 
+  it('определяет RAW-форматы как изображения', () => {
+    for (const name of ['a.cr2', 'b.CR3', 'c.nef', 'd.arw', 'e.dng', 'f.raf', 'g.rw2', 'h.x3f', 'i.raw']) {
+      expect(kindOf(name)).toBe('image');
+    }
+  });
+
   it('возвращает other для всего остального', () => {
     expect(kindOf('notes.txt')).toBe('other');
     expect(kindOf('noextension')).toBe('other');
     expect(kindOf('.gitignore')).toBe('other');
+  });
+});
+
+describe('isRawImage', () => {
+  it('узнаёт камерный RAW по расширению', () => {
+    expect(isRawImage('photo.cr2')).toBe(true);
+    expect(isRawImage('photo.CR2')).toBe(true);
+    expect(isRawImage('photo.nef')).toBe(true);
+  });
+
+  it('не считает RAW обычные снимки и видео', () => {
+    expect(isRawImage('photo.jpg')).toBe(false);
+    expect(isRawImage('photo.heic')).toBe(false);
+    expect(isRawImage('clip.mp4')).toBe(false);
+    expect(isRawImage('notes.txt')).toBe(false);
   });
 });
 
@@ -82,6 +104,8 @@ describe('mimeFor', () => {
     expect(mimeFor('photo.JPG')).toBe('image/jpeg');
     expect(mimeFor('clip.mp4')).toBe('video/mp4');
     expect(mimeFor('clip.mov')).toBe('video/quicktime');
+    expect(mimeFor('photo.cr2')).toBe('image/x-canon-cr2');
+    expect(mimeFor('photo.nef')).toBe('image/x-nikon-nef');
   });
 
   it('откатывается на application/octet-stream для неизвестного расширения', () => {

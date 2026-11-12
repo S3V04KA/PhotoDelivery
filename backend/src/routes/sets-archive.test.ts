@@ -123,6 +123,23 @@ async function noisyJpeg(width: number, height: number, quality: number): Promis
   return sharp(noise, { raw: { width, height, channels: 3 } }).jpeg({ quality }).toBuffer();
 }
 
+/**
+ * Синтетический RAW: «сенсорные данные» до и после встроенного JPEG-превью.
+ * Шум детерминированный (байт отличается от предыдущего на 197 mod 256), поэтому
+ * случайных вхождений FF D8 FF внутри него не бывает — парсер встречает только
+ * настоящий встроенный кадр.
+ */
+async function rawWithEmbedded(width: number, height: number): Promise<Buffer> {
+  const embedded = await sharp({
+    create: { width, height, channels: 3, background: '#336699' },
+  }).jpeg({ quality: 92 }).toBuffer();
+  const noise = Buffer.alloc(32 * 1024);
+  for (let index = 0; index < noise.length; index += 1) {
+    noise[index] = (index * 197 + 13) % 256;
+  }
+  return Buffer.concat([noise, embedded, noise]);
+}
+
 describe('ZipWriter', () => {
   it('пишет запись больше highWaterMark, уважая backpressure', async () => {
     const chunks: Buffer[] = [];
@@ -160,7 +177,7 @@ describe('GET /api/sets/:id/archive', () => {
     store.seed('alpha/notes.txt', 'n'.repeat(10), SEEDED_AT);
     store.seed('alpha/thumb/a.jpg', 't'.repeat(10), SEEDED_AT);
 
-    const response = await request(harness).get('/api/sets/alpha/archive?quality=original').responseType('blob');
+    const response = await request(harness).get('/api/sets/alpha/archive?quality=raw').responseType('blob');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toBe('application/zip');
@@ -199,7 +216,7 @@ describe('GET /api/sets/:id/archive', () => {
     store.seed('alpha/b.mp4', 'b'.repeat(10), SEEDED_AT, 'video/mp4');
 
     const response = await request(harness)
-      .get('/api/sets/alpha/archive?quality=original&names=a.jpg,b.mp4')
+      .get('/api/sets/alpha/archive?quality=raw&names=a.jpg,b.mp4')
       .responseType('blob');
 
     expect(response.status).toBe(200);
@@ -221,7 +238,7 @@ describe('GET /api/sets/:id/archive', () => {
     const source = await noisyJpeg(160, 120, 100);
     store.seed('alpha/photo.jpg', source, SEEDED_AT, 'image/jpeg');
 
-    const response = await request(harness).get('/api/sets/alpha/archive?quality=compressed').responseType('blob');
+    const response = await request(harness).get('/api/sets/alpha/archive?quality=social').responseType('blob');
 
     expect(response.status).toBe(200);
     const bytes = binary(response);
@@ -231,6 +248,64 @@ describe('GET /api/sets/:id/archive', () => {
     expect(body.length).toBeLessThanOrEqual(source.length);
     const meta = await sharp(body).metadata();
     expect([meta.width, meta.height]).toEqual([160, 120]);
+  });
+
+  it('отдаёт в архиве quality=jpeg: jpg как есть, png перекодируется в jpg', async () => {
+    const { app: harness, store } = makeHarness();
+    const png = await sharp({ create: { width: 80, height: 60, channels: 3, background: '#cc3344' } }).png().toBuffer();
+    const jpg = await noisyJpeg(60, 40, 95);
+    store.seed('alpha/pic.png', png, SEEDED_AT, 'image/png');
+    store.seed('alpha/keep.jpg', jpg, SEEDED_AT, 'image/jpeg');
+
+    const response = await request(harness).get('/api/sets/alpha/archive?quality=jpeg').responseType('blob');
+
+    expect(response.status).toBe(200);
+    const bytes = binary(response);
+    expect([...names(bytes)].sort()).toEqual(['keep.jpg', 'pic.jpg']);
+    const converted = bodyOf(bytes, entryNamed(bytes, 'pic.jpg'));
+    expect(converted.subarray(0, JPEG_MAGIC.length)).toEqual(JPEG_MAGIC);
+    const meta = await sharp(converted).metadata();
+    expect([meta.width, meta.height]).toEqual([80, 60]);
+    const kept = bodyOf(bytes, entryNamed(bytes, 'keep.jpg'));
+    expect(kept.equals(store.bodyOf('alpha/keep.jpg') ?? Buffer.alloc(0))).toBe(true);
+  });
+
+  it('добывает JPEG из RAW для social, а quality=raw отдаёт байты файла', async () => {
+    const { app: harness, store } = makeHarness();
+    const raw = await rawWithEmbedded(48, 36);
+    store.seed('alpha/photo.cr2', raw, SEEDED_AT, 'image/x-canon-cr2');
+
+    const social = await request(harness).get('/api/sets/alpha/file/photo.cr2?quality=social').responseType('blob');
+    const jpeg = await request(harness).get('/api/sets/alpha/file/photo.cr2?quality=jpeg').responseType('blob');
+    const original = await request(harness).get('/api/sets/alpha/file/photo.cr2?quality=raw').responseType('blob');
+
+    expect(social.status).toBe(200);
+    expect(social.headers['content-type']).toBe('image/jpeg');
+    expect(social.headers['content-disposition']).toBe('attachment; filename="photo.jpg"');
+    const socialBody = binary(social);
+    expect(socialBody.subarray(0, JPEG_MAGIC.length)).toEqual(JPEG_MAGIC);
+    expect(socialBody.length).toBeLessThan(raw.length);
+
+    expect(jpeg.status).toBe(200);
+    expect(jpeg.headers['content-disposition']).toBe('attachment; filename="photo.jpg"');
+    const jpegMeta = await sharp(binary(jpeg)).metadata();
+    expect([jpegMeta.width, jpegMeta.height]).toEqual([48, 36]);
+
+    expect(original.status).toBe(200);
+    expect(original.headers['content-type']).toBe('image/x-canon-cr2');
+    expect(original.headers['content-disposition']).toBe('attachment; filename="photo.cr2"');
+    expect(binary(original).equals(raw)).toBe(true);
+  });
+
+  it('разводит одноимённые файлы: сжатый RAW и снятый параллельно jpg', async () => {
+    const { app: harness, store } = makeHarness();
+    store.seed('alpha/photo.cr2', await rawWithEmbedded(48, 36), SEEDED_AT, 'image/x-canon-cr2');
+    store.seed('alpha/photo.jpg', await noisyJpeg(48, 36, 95), SEEDED_AT, 'image/jpeg');
+
+    const response = await request(harness).get('/api/sets/alpha/archive?quality=social').responseType('blob');
+
+    expect(response.status).toBe(200);
+    expect([...names(binary(response))].sort()).toEqual(['photo (1).jpg', 'photo.jpg']);
   });
 
   it('отдаёт 400 на неизвестное качество и на traversal в names', async () => {
@@ -267,7 +342,7 @@ describe('GET /api/sets/:id/file/:name', () => {
     const { app: harness, store } = makeHarness();
     store.seed('alpha/a.jpg', 'a'.repeat(120), SEEDED_AT, 'image/jpeg');
 
-    const response = await request(harness).get('/api/sets/alpha/file/a.jpg?quality=original');
+    const response = await request(harness).get('/api/sets/alpha/file/a.jpg?quality=raw');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toBe('image/jpeg');
@@ -303,14 +378,17 @@ describe('GET /api/sets/:id/file/:name', () => {
     expect(missing.body).toEqual({ error: FILE_NOT_FOUND });
   });
 
-  it('отдаёт 400 на неизвестное качество', async () => {
+  it('отдаёт 400 на неизвестное и устаревшее качество', async () => {
     const { app: harness, store } = makeHarness();
     store.seed('alpha/a.jpg', 'a'.repeat(10), SEEDED_AT, 'image/jpeg');
 
-    const response = await request(harness).get('/api/sets/alpha/file/a.jpg?quality=raw');
+    const unknown = await request(harness).get('/api/sets/alpha/file/a.jpg?quality=lossless');
+    const legacy = await request(harness).get('/api/sets/alpha/file/a.jpg?quality=original');
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: BAD_QUALITY });
+    expect(unknown.status).toBe(400);
+    expect(unknown.body).toEqual({ error: BAD_QUALITY });
+    expect(legacy.status).toBe(400);
+    expect(legacy.body).toEqual({ error: BAD_QUALITY });
   });
 
   it('пережимает фото на лету, не увеличивая размер', async () => {
@@ -318,7 +396,7 @@ describe('GET /api/sets/:id/file/:name', () => {
     const source = await noisyJpeg(200, 150, 100);
     store.seed('alpha/photo.jpg', source, SEEDED_AT, 'image/jpeg');
 
-    const response = await request(harness).get('/api/sets/alpha/file/photo.jpg?quality=compressed').responseType('blob');
+    const response = await request(harness).get('/api/sets/alpha/file/photo.jpg?quality=social').responseType('blob');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toBe('image/jpeg');
@@ -342,7 +420,7 @@ describe('GET /api/sets/:id/file/:name', () => {
     store.seed('alpha/clip.mp4', await readFile(source), SEEDED_AT, 'video/mp4');
 
     const response = await request(harness)
-      .get('/api/sets/alpha/file/clip.mp4?quality=compressed')
+      .get('/api/sets/alpha/file/clip.mp4?quality=social')
       .responseType('blob');
 
     expect(response.status).toBe(200);
@@ -364,7 +442,7 @@ describe('GET /api/sets/:id/file/:name', () => {
     ], { stdio: 'ignore' });
     store.seed('alpha/holiday.mp4', await readFile(source), SEEDED_AT, 'video/mp4');
 
-    const response = await request(harness).get('/api/sets/alpha/archive?quality=compressed').responseType('blob');
+    const response = await request(harness).get('/api/sets/alpha/archive?quality=social').responseType('blob');
 
     expect(response.status).toBe(200);
     const bytes = binary(response);

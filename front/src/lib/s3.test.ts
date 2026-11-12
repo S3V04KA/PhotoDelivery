@@ -205,6 +205,20 @@ describe('listMedia: фильтрация и сортировка', () => {
       `${ORIGIN}/set/thumb/%D0%BA%D0%BB%D0%B8%D0%BF%201.jpg`,
     ]);
   });
+
+  it('показывает RAW как изображение с превью thumb/{basename}.jpg', async () => {
+    // Given
+    stubFetch(reply(listing(item('set/photo.cr2') + item('set/shot.NEF'))));
+
+    // When
+    const items = await listMedia('set');
+
+    // Then
+    expect(items.map((entry) => [entry.kind, entry.thumbUrl])).toEqual([
+      ['image', `${ORIGIN}/set/thumb/photo.jpg`],
+      ['image', `${ORIGIN}/set/thumb/shot.jpg`],
+    ]);
+  });
 });
 
 describe('listMedia: постраничный листинг', () => {

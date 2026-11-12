@@ -54,6 +54,17 @@ describe('thumbUrl', () => {
     );
   });
 
+  it('для форматов без собственного превью берёт thumb/{basename}.jpg', async () => {
+    const { thumbUrl } = await loadUrls('http://localhost:9000', 'photos');
+
+    // RAW и heic не рендерятся как есть — бэкенд кладёт их превью под .jpg.
+    expect(thumbUrl('set', 'photo.cr2', 'image')).toBe(`${DEFAULT_ORIGIN}/set/thumb/photo.jpg`);
+    expect(thumbUrl('set', 'Отпуск.NEF', 'image')).toBe(
+      `${DEFAULT_ORIGIN}/set/thumb/${encodeURIComponent('Отпуск')}.jpg`,
+    );
+    expect(thumbUrl('set', 'a.heic', 'image')).toBe(`${DEFAULT_ORIGIN}/set/thumb/a.jpg`);
+  });
+
   it('для видео берёт первый кадр по базовому имени', async () => {
     const { thumbUrl } = await loadUrls('http://localhost:9000', 'photos');
 

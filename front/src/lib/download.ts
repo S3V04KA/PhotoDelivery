@@ -6,20 +6,26 @@
  * `vite.config.ts` proxies `/api` to the backend on :8080. Because the request
  * is same-origin, the temporary-anchor mechanism below is enough — the browser
  * applies the response's `Content-Disposition` filename to the saved file, so
- * a compressed video keeps the server-sent `…-720p.mp4` name. No blob, no
+ * a social video keeps the server-sent `…-720p.mp4` name. No blob, no
  * manual filename parsing, no cross-origin fallback needed.
  */
 
-export type DownloadQuality = 'original' | 'compressed';
+/**
+ * What the backend serves for a download request:
+ *  - `social` — сжатый формат для соцсетей (фото q80, видео 720p);
+ *  - `jpeg`   — полное разрешение в JPEG (RAW → встроенное превью полного кадра);
+ *  - `raw`    — полное разрешение, исходные байты файла.
+ */
+export type DownloadQuality = 'social' | 'jpeg' | 'raw';
 
 /**
- * What the plain download button sends. Compressed is the common case — 720p
- * video and a lighter photo are the sizes a phone actually shares — and the
- * original stays one chevron away. The server falls back to `original` when the
+ * What the plain download button sends. Social is the common case — a lighter
+ * photo and a 720p video are the sizes a phone actually shares — and the full
+ * resolutions stay one chevron away. The server falls back to `raw` when the
  * parameter is missing, so this constant is also what keeps that from
  * happening by accident: every call site passes a quality explicitly.
  */
-export const DEFAULT_QUALITY: DownloadQuality = 'compressed';
+export const DEFAULT_QUALITY: DownloadQuality = 'social';
 
 const API_ROOT = '/api';
 
@@ -50,7 +56,7 @@ export function archiveUrl(
   return `${API_ROOT}/sets/${encodeSegment(setId)}/archive?${query.join('&')}`;
 }
 
-/** One file. A compressed video is served by the backend as `…-720p.mp4`. */
+/** One file. A social video is served by the backend as `…-720p.mp4`. */
 export function fileUrl(setId: string, name: string, quality: DownloadQuality): string {
   const path = name.split('/').map(encodeSegment).join('/');
 

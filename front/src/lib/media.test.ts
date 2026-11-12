@@ -4,6 +4,7 @@ import { s3Config } from './config';
 import {
   gridImageCandidates,
   isDisplayableImage,
+  isRawImage,
   thumbBasenameJpg,
   viewerImageCandidates,
 } from './media';
@@ -325,6 +326,9 @@ describe('isDisplayableImage', () => {
     'a.HEIC',
     'a.heif',
     'photo.jpg.heic',
+    'a.cr2',
+    'photo.NEF',
+    'a.dng',
     'holiday',
     '.env',
     'a.',
@@ -332,5 +336,38 @@ describe('isDisplayableImage', () => {
 
   it.each(NOT_DISPLAYABLE)('не считает отображаемым %s', (name) => {
     expect(isDisplayableImage(name)).toBe(false);
+  });
+});
+
+describe('isRawImage', () => {
+  const RAW: readonly string[] = ['a.cr2', 'a.CR3', 'b.nef', 'c.arw', 'd.dng', 'e.raf', 'f.rw2', 'g.raw'];
+
+  it.each(RAW)('считает RAW %s', (name) => {
+    expect(isRawImage(name)).toBe(true);
+  });
+
+  const NOT_RAW: readonly string[] = ['a.jpg', 'a.heic', 'a.tif', 'clip.mp4', 'notes.txt', 'holiday', 'a.'];
+
+  it.each(NOT_RAW)('не считает RAW %s', (name) => {
+    expect(isRawImage(name)).toBe(false);
+  });
+});
+
+describe('viewerImageCandidates для RAW', () => {
+  it('ведёт от превью к basename.jpg, а оригинал оставляет запасным', () => {
+    // Given
+    const item: MediaItem = {
+      key: 'set/photo.cr2',
+      name: 'photo.cr2',
+      url: `${ORIGIN}/set/photo.cr2`,
+      thumbUrl: `${ORIGIN}/set/thumb/photo.jpg`,
+      kind: 'image',
+    };
+
+    // When
+    const candidates = viewerImageCandidates(item);
+
+    // Then
+    expect(candidates).toEqual([`${ORIGIN}/set/thumb/photo.jpg`, `${ORIGIN}/set/photo.cr2`]);
   });
 });

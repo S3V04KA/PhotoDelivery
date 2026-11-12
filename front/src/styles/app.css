@@ -908,7 +908,7 @@
  * portal-rendered: it keeps the trigger's stacking context and its Escape.
  */
 .dl-split__menu {
-  --md-menu-max: 240px;
+  --md-menu-max: 280px;
   position: absolute;
   z-index: 130;
   top: calc(100% + var(--md-spacing-1));
@@ -966,7 +966,10 @@
 
 .dl-split__option-label {
   flex: 1;
-  white-space: nowrap;
+  /* Длинные подписи («Для соцсетей (сжатый формат)») переносятся, а не
+     вылезают за край меню, упирающегося в max-width. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .dl-split__check {

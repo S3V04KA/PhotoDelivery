@@ -8,10 +8,15 @@ interface QualityChoice {
   readonly label: string;
 }
 
-/** Reading order of the menu; «Сжатое» is the default and carries the check. */
+/**
+ * Reading order of the menu; «Для соцсетей» is the default and carries the
+ * check. «Полное разрешение RAW» shows only when the download scope actually
+ * contains RAW files — otherwise it would be a second copy of the JPEG choice.
+ */
 const QUALITY_CHOICES: readonly QualityChoice[] = [
-  { quality: 'original', label: 'Оригинал' },
-  { quality: 'compressed', label: 'Сжатое' },
+  { quality: 'social', label: 'Для соцсетей (сжатый формат)' },
+  { quality: 'jpeg', label: 'Полное разрешение JPEG' },
+  { quality: 'raw', label: 'Полное разрешение RAW' },
 ];
 
 /** Where focus lands on open: the very option the main button downloads. */
@@ -30,20 +35,26 @@ interface DownloadButtonProps {
   readonly disabled?: boolean;
   /** Name of the whole control, e.g. «Скачать альбом целиком». */
   readonly ariaLabel?: string;
+  /** Есть ли в скачиваемом наборе RAW-файлы (показ пункта «Полное разрешение RAW»). */
+  readonly rawAvailable?: boolean;
 }
 
 /**
  * One control with two gestures. The long half downloads straight away at
- * `DEFAULT_QUALITY`; the chevron half opens a menu for the other one. Choosing
- * an option downloads too, so the menu is a shortcut, never a confirmation
- * step in front of a single archive.
+ * `DEFAULT_QUALITY`; the chevron half opens a menu for the other choices.
+ * Choosing an option downloads too, so the menu is a shortcut, never a
+ * confirmation step in front of a single archive.
  */
 export function DownloadButton({
   onDownload,
   className,
   disabled = false,
   ariaLabel,
+  rawAvailable = true,
 }: DownloadButtonProps) {
+  const choices = rawAvailable
+    ? QUALITY_CHOICES
+    : QUALITY_CHOICES.filter((choice) => choice.quality !== 'raw');
   const menuId = useId();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -51,7 +62,7 @@ export function DownloadButton({
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const focusOption = (index: number) => {
-    const total = QUALITY_CHOICES.length;
+    const total = choices.length;
     itemRefs.current[(((index % total) + total) % total)]?.focus();
   };
 
@@ -172,7 +183,7 @@ export function DownloadButton({
 
       {open && (
         <div className="dl-split__menu" id={menuId} role="menu" aria-label="Качество загрузки">
-          {QUALITY_CHOICES.map((choice, index) => {
+          {choices.map((choice, index) => {
             const checked = choice.quality === DEFAULT_QUALITY;
 
             return (

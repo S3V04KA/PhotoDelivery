@@ -19,6 +19,22 @@ const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set([
   'tiff',
   'heic',
   'heif',
+  // Камерный RAW: хранится как оригинал, превью добывается из встроенного JPEG.
+  'cr2',
+  'cr3',
+  'nef',
+  'nrw',
+  'arw',
+  'srf',
+  'sr2',
+  'dng',
+  'raf',
+  'orf',
+  'rw2',
+  'pef',
+  'srw',
+  'x3f',
+  'raw',
 ]);
 
 const VIDEO_EXTENSIONS: ReadonlySet<string> = new Set([

@@ -24,8 +24,8 @@ export interface SetsArchiveDeps {
 }
 
 function parseQuality(raw: unknown): Validation<ArchiveQuality> {
-  if (raw === undefined) return { ok: true, value: 'original' };
-  if (raw === 'original' || raw === 'compressed') return { ok: true, value: raw };
+  if (raw === undefined) return { ok: true, value: 'raw' };
+  if (raw === 'social' || raw === 'jpeg' || raw === 'raw') return { ok: true, value: raw };
   return { ok: false, error: BAD_QUALITY };
 }
 

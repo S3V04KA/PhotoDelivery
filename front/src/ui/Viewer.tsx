@@ -11,7 +11,7 @@ import {
 import { createPortal } from 'react-dom';
 
 import { fileUrl, triggerDownload, type DownloadQuality } from '../lib/download';
-import { viewerImageCandidates } from '../lib/media';
+import { isRawImage, viewerImageCandidates } from '../lib/media';
 import type { MediaItem } from '../lib/types';
 import { DownloadButton } from './DownloadButton';
 import { BrokenImageIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon } from './icons';
@@ -328,7 +328,11 @@ export default function Viewer({ setId, items, index, onIndexChange, onClose }: 
         <button className="icon-btn" type="button" onClick={onClose} aria-label="Закрыть">
           <CloseIcon className="icon" />
         </button>
-        <DownloadButton onDownload={handleDownload} ariaLabel="Скачать файл" />
+        <DownloadButton
+          onDownload={handleDownload}
+          ariaLabel="Скачать файл"
+          rawAvailable={isRawImage(item.name)}
+        />
       </div>
 
       {showNavigation && (

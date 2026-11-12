@@ -9,7 +9,7 @@ interface DropzoneProps {
   readonly focusToken: number;
 }
 
-const ACCEPT = 'image/*,video/*';
+const ACCEPT = 'image/*,video/*,.cr2,.cr3,.nef,.nrw,.arw,.srf,.sr2,.dng,.raf,.orf,.rw2,.pef,.srw,.x3f,.raw';
 
 export function Dropzone({ disabled, onFiles, focusToken }: DropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);

@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import type { FormatEnum } from 'sharp';
-import { baseNameOf, extensionOf, kindOf, THUMB_DIR } from '../util/media';
+import { baseNameOf, extensionOf, isRawImage, kindOf, THUMB_DIR } from '../util/media';
+import { extractEmbeddedJpeg } from '../util/embedded-jpeg';
 import { qualityScale, resolveFfmpegBinary, runFfmpeg } from './video-frame';
 
 export type SharpFormat = keyof FormatEnum | 'avif';
@@ -97,6 +98,13 @@ export class MediaPreviewer implements Previewer {
         return { key: imageThumbKey(request.setId, request.fileName, true), body: sameFormat };
       }
     }
+    // RAW sharp не декодирует: превью лежит внутри файла в виде JPEG.
+    if (isRawImage(request.fileName)) {
+      const fromRaw = await this.#renderRaw(request.path);
+      if (fromRaw !== null) {
+        return { key: imageThumbKey(request.setId, request.fileName, false), body: fromRaw };
+      }
+    }
     const asJpeg = await this.#render(request.path, 'jpeg');
     if (asJpeg !== null) {
       return { key: imageThumbKey(request.setId, request.fileName, false), body: asJpeg };
@@ -104,9 +112,19 @@ export class MediaPreviewer implements Previewer {
     throw new PreviewError('Не удалось декодировать изображение');
   }
 
-  async #render(filePath: string, format: SharpFormat): Promise<Buffer | null> {
+  async #renderRaw(filePath: string): Promise<Buffer | null> {
     try {
-      const pipeline = sharp(filePath)
+      const embedded = extractEmbeddedJpeg(await readFile(filePath));
+      if (embedded === null) return null;
+      return await this.#render(embedded, 'jpeg');
+    } catch {
+      return null;
+    }
+  }
+
+  async #render(input: string | Buffer, format: SharpFormat): Promise<Buffer | null> {
+    try {
+      const pipeline = sharp(input)
         .rotate()
         .resize({
           width: this.#thumbSize,

@@ -112,6 +112,35 @@ describe('MediaPreviewer для изображений', () => {
     expect(result.body.subarray(0, JPEG_MAGIC.length)).toEqual(JPEG_MAGIC);
   });
 
+  it('добывает превью из RAW через встроенное JPEG-превью', async () => {
+    const embedded = await sharp({
+      create: { width: 96, height: 64, channels: 3, background: '#2255aa' },
+    }).jpeg().toBuffer();
+    const noise = Buffer.alloc(8 * 1024);
+    for (let index = 0; index < noise.length; index += 1) {
+      noise[index] = (index * 197 + 13) % 256;
+    }
+    const source = path.join(workDir, 'photo.cr2');
+    await writeFile(source, Buffer.concat([noise, embedded, noise]));
+
+    const result = await previewer.generate({ path: source, fileName: 'photo.cr2', setId: 'set-1' });
+
+    expect(result.key).toBe('set-1/thumb/photo.jpg');
+    expect(result.body.subarray(0, JPEG_MAGIC.length)).toEqual(JPEG_MAGIC);
+    const meta = await sharp(result.body).metadata();
+    expect(meta.width).toBe(32);
+    expect(meta.height).toBeLessThanOrEqual(32);
+  });
+
+  it('бросает PreviewError, если в RAW нет встроенного JPEG', async () => {
+    const source = path.join(workDir, 'empty.cr2');
+    await writeFile(source, Buffer.alloc(4096, 5));
+
+    await expect(previewer.generate({ path: source, fileName: 'empty.cr2', setId: 'set-1' })).rejects.toThrowError(
+      'Не удалось декодировать изображение',
+    );
+  });
+
   it('бросает PreviewError, если файл не декодируется ни в одном формате', async () => {
     const source = path.join(workDir, 'broken.png');
     await writeFile(source, Buffer.from('this is not an image'));

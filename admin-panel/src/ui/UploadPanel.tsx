@@ -358,8 +358,9 @@ export function UploadPanel({
         </h2>
         <Dropzone disabled={running} onFiles={addFiles} focusToken={focusToken} />
         <p className="section__hint">
-          Поддерживаются JPG, PNG, GIF, WebP, AVIF, BMP, TIFF, HEIC и MP4, WebM, MOV, M4V, OGV, MKV,
-          AVI. Остальные форматы отмечаются в очереди и не отправляются на сервер.
+          Поддерживаются JPG, PNG, GIF, WebP, AVIF, BMP, TIFF, HEIC, RAW (CR2, CR3, NEF, ARW, DNG и
+          другие) и MP4, WebM, MOV, M4V, OGV, MKV, AVI. Остальные форматы отмечаются в очереди и не
+          отправляются на сервер.
         </p>
       </section>
 

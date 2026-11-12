@@ -7,9 +7,18 @@ const MAX_PAGES = 100;
 
 const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set([
   'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff', 'heic', 'heif',
+  // RAW: зеркалит backend, иначе листинг не покажет сет из одних .cr2.
+  'cr2', 'cr3', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'dng', 'raf', 'orf', 'rw2', 'pef', 'srw', 'x3f', 'raw',
 ]);
 const VIDEO_EXTENSIONS: ReadonlySet<string> = new Set([
   'mp4', 'webm', 'mov', 'm4v', 'ogv', 'mkv', 'avi',
+]);
+/**
+ * Превью этих форматов backend пишет под исходным именем; остальным (heic,
+ * bmp, RAW…) — `thumb/{basename}.jpg`, потому что они не рендерятся как есть.
+ */
+const THUMB_KEEP_EXTENSIONS: ReadonlySet<string> = new Set([
+  'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'tif', 'tiff',
 ]);
 const MISSING_CODES: ReadonlySet<string> = new Set(['NoSuchBucket', 'NoSuchKey', 'NoSuchUpload']);
 const ACCESS_DENIED_CODE = 'AccessDenied';
@@ -49,11 +58,16 @@ function classify(filename: string): MediaKind | null {
 }
 
 function thumbName(filename: string, kind: MediaKind): string {
+  const dot = filename.lastIndexOf('.');
+  const base = dot > 0 ? filename.slice(0, dot) : filename;
+
   switch (kind) {
     case 'image':
-      return filename;
+      return dot > 0 && THUMB_KEEP_EXTENSIONS.has(filename.slice(dot + 1).toLowerCase())
+        ? filename
+        : `${base}.jpg`;
     case 'video':
-      return `${filename.slice(0, filename.lastIndexOf('.'))}.jpg`;
+      return `${base}.jpg`;
     default:
       return assertNever(kind);
   }

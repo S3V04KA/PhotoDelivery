@@ -64,6 +64,13 @@ describe('mediaKind', () => {
     }
   });
 
+  it('узнаёт камерный RAW как изображение', () => {
+    for (const name of ['a.cr2', 'a.CR3', 'b.nef', 'c.arw', 'd.dng', 'e.raf', 'f.rw2', 'g.raw']) {
+      expect(mediaKind(name)).toBe('image');
+      expect(isSupportedMedia(name)).toBe(true);
+    }
+  });
+
   it('узнаёт видео', () => {
     for (const name of ['a.mp4', 'a.MOV', 'a.mkv', 'a.avi', 'a.m4v']) {
       expect(mediaKind(name)).toBe('video');

@@ -2,6 +2,15 @@ const IMAGE_EXTENSIONS = [
   'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff', 'heic', 'heif',
 ] as const;
 
+/**
+ * Камерные RAW-форматы. Файлы хранятся байт-в-байт как оригинал, а превью и
+ * «полное разрешение JPEG» добываются из JPEG-превью, встроенного в RAW.
+ * Зеркалит admin-panel/src/lib/validate.ts и front/src/lib/{s3,media}.ts.
+ */
+const RAW_EXTENSIONS = [
+  'cr2', 'cr3', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'dng', 'raf', 'orf', 'rw2', 'pef', 'srw', 'x3f', 'raw',
+] as const;
+
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'mov', 'm4v', 'ogv', 'mkv', 'avi'] as const;
 
 const MIME_TYPES: Readonly<Record<string, string>> = {
@@ -16,6 +25,20 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
   tiff: 'image/tiff',
   heic: 'image/heic',
   heif: 'image/heif',
+  cr2: 'image/x-canon-cr2',
+  cr3: 'image/x-canon-cr3',
+  nef: 'image/x-nikon-nef',
+  nrw: 'image/x-nikon-nrw',
+  arw: 'image/x-sony-arw',
+  srf: 'image/x-sony-srf',
+  sr2: 'image/x-sony-sr2',
+  dng: 'image/x-adobe-dng',
+  raf: 'image/x-fujifilm-raf',
+  orf: 'image/x-olympus-orf',
+  rw2: 'image/x-panasonic-rw2',
+  pef: 'image/x-pentax-pef',
+  srw: 'image/x-samsung-srw',
+  x3f: 'image/x-sigma-x3f',
   mp4: 'video/mp4',
   webm: 'video/webm',
   mov: 'video/quicktime',
@@ -44,8 +67,14 @@ export function baseNameOf(name: string): string {
 export function kindOf(name: string): MediaKind {
   const ext = extensionOf(name);
   if ((IMAGE_EXTENSIONS as readonly string[]).includes(ext)) return 'image';
+  if ((RAW_EXTENSIONS as readonly string[]).includes(ext)) return 'image';
   if ((VIDEO_EXTENSIONS as readonly string[]).includes(ext)) return 'video';
   return 'other';
+}
+
+/** Камерный RAW: оригинал отдаётся как есть, JPEG-вариант извлекается из файла. */
+export function isRawImage(name: string): boolean {
+  return (RAW_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
 
 export function mimeFor(name: string): string {

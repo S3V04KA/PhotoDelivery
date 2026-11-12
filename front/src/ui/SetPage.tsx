@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 
 import { archiveUrl, triggerDownload, type DownloadQuality } from '../lib/download';
 import { hashSeed } from '../lib/layout';
+import { isRawImage } from '../lib/media';
 import { usePaletteForSet, type PaletteStatus } from '../lib/palette';
 import { listMedia } from '../lib/s3';
 import { S3Error, SetNotFoundError, type MediaItem } from '../lib/types';
@@ -108,10 +109,18 @@ export function SetPage({ setId }: SetPageProps) {
     setViewerIndex(null);
   }, []);
 
-  const selectedNames = useMemo(
-    () => items.filter((item) => selected.has(item.key)).map((item) => item.name),
+  const selectedItems = useMemo(
+    () => items.filter((item) => selected.has(item.key)),
     [items, selected],
   );
+  const selectedNames = useMemo(
+    () => selectedItems.map((item) => item.name),
+    [selectedItems],
+  );
+  /* «Полное разрешение RAW» имеет смысл только там, где RAW реально лежит:
+     в выделении — среди выделенных, у альбома — где-то в наборе. */
+  const selectionHasRaw = selectedItems.some((item) => isRawImage(item.name));
+  const setHasRaw = items.some((item) => isRawImage(item.name));
 
   const handleToggle = useCallback((item: MediaItem) => {
     setSelected((previous) => {
@@ -191,6 +200,7 @@ export function SetPage({ setId }: SetPageProps) {
             onDownload={handleDownloadSelected}
             disabled={selectionCount === 0}
             ariaLabel="Скачать выбранные файлы"
+            rawAvailable={selectionHasRaw}
           />
         </div>
       ) : (
@@ -207,6 +217,7 @@ export function SetPage({ setId }: SetPageProps) {
               className="appbar__action"
               onDownload={handleDownloadAlbum}
               ariaLabel="Скачать альбом целиком"
+              rawAvailable={setHasRaw}
             />
           )}
         </header>

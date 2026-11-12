@@ -16,9 +16,19 @@ import type { MediaItem } from './types';
 const ORIGIN = `${s3Config.endpoint}/${s3Config.bucket}`;
 const THUMB_DIR = 'thumb';
 
+/**
+ * Камерные RAW-форматы: зеркалит backend/src/util/media.ts. Браузер такое в
+ * <img> не рисует, а превью и JPEG-вариант для них делаются из встроенного в
+ * файл JPEG-кадра.
+ */
+const RAW_EXTENSIONS: ReadonlySet<string> = new Set([
+  'cr2', 'cr3', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'dng', 'raf', 'orf', 'rw2', 'pef', 'srw', 'x3f', 'raw',
+]);
+
 /** Formats no browser but Safari paints in <img> without a conversion step. */
 const NON_DISPLAYABLE_EXTENSIONS: ReadonlySet<string> = new Set([
   'tif', 'tiff', 'heic', 'heif',
+  ...RAW_EXTENSIONS,
 ]);
 
 /** Segment-wise encoding, identical to s3.ts `encodePath`. */
@@ -57,6 +67,15 @@ export function isDisplayableImage(name: string): boolean {
   const extension = name.slice(dot + 1).toLowerCase();
 
   return extension !== '' && !NON_DISPLAYABLE_EXTENSIONS.has(extension);
+}
+
+/** Камерный RAW: у файла есть «полное разрешение RAW» и «полное разрешение JPEG». */
+export function isRawImage(name: string): boolean {
+  const dot = name.lastIndexOf('.');
+
+  if (dot <= 0) return false;
+
+  return RAW_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
 }
 
 /** Tile sources: cheapest first, and never the original of a video. */

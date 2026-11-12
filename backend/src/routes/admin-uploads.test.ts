@@ -74,6 +74,25 @@ describe('POST /api/admin/uploads', () => {
     expect(tmpUploads('txt')).toEqual(before);
   });
 
+  it('принимает RAW-форматы (CR2 и другие) как изображения', async () => {
+    const { app, store, previewer } = makeHarness();
+    const cookie = await loginCookie(app);
+
+    const response = await request(app)
+      .post('/api/admin/uploads')
+      .set('Cookie', cookie)
+      .field('setId', 'my-set')
+      .attach('files', Buffer.from('raw-bytes'), 'photo.cr2');
+
+    const body: UploadBody = response.body;
+    expect(response.status).toBe(200);
+    expect(body.done).toBe(1);
+    expect(body.results).toEqual([{ name: 'photo.cr2', ok: true, thumb: 'ok' }]);
+    expect(store.bodyOf('my-set/photo.cr2')?.toString()).toBe('raw-bytes');
+    expect(store.contentTypeOf('my-set/photo.cr2')).toBe('image/x-canon-cr2');
+    expect(previewer.calls.map((call) => call.fileName)).toEqual(['photo.cr2']);
+  });
+
   it('не роняет загрузку, если превью не построилось', async () => {
     const { app, previewer } = makeHarness();
     previewer.failingNames.add('photo.png');
